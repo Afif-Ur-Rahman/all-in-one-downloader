@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { siteConfig } from "@/lib";
 import { JsonLd } from "@/seo";
+import { Footer, Header } from "@/components";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -53,6 +54,8 @@ export const viewport: Viewport = {
   ],
 };
 
+const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d)}catch(e){}})();`;
+
 const RootLayout = ({ children }: LayoutProps<"/">) => {
   return (
     <html
@@ -60,9 +63,14 @@ const RootLayout = ({ children }: LayoutProps<"/">) => {
       suppressHydrationWarning
       className={`${inter.variable} ${jakarta.variable} ${geistMono.variable} h-full`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <JsonLd />
+        <Header />
         {children}
+        <Footer />
         <Toaster position="bottom-center" />
       </body>
     </html>
