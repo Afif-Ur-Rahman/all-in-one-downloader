@@ -7,9 +7,15 @@ import { toast } from "sonner";
 import { ClipboardPaste, Download, Link2 } from "lucide-react";
 import { Input } from "./input";
 import { Button } from "./button";
+import { detectPlatform } from "@/lib";
 
 const schema = z.object({
-  url: z.url("Please enter a valid link, starting with https://"),
+  url: z
+    .url("Please enter a valid link, starting with https://")
+    .refine(
+      (value) => detectPlatform(value) !== null,
+      "This platform isn't supported yet",
+    ),
 });
 
 type FormValues = z.infer<typeof schema>;
