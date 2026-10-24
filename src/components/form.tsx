@@ -8,6 +8,7 @@ import { ClipboardPaste, Download, Link2 } from "lucide-react";
 import { Input } from "./input";
 import { Button } from "./button";
 import { detectPlatform } from "@/lib";
+import { useVideoStore } from "@/store";
 
 const schema = z.object({
   url: z
@@ -31,6 +32,8 @@ export const LinkForm = () => {
     defaultValues: { url: "" },
   });
 
+  const { fetchInfo } = useVideoStore();
+
   const onPaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -40,9 +43,8 @@ export const LinkForm = () => {
     }
   };
 
-  const onSubmit = (values: FormValues) => {
-    // Functionality phase: call the download API here
-    toast.info(`Link accepted: ${values.url}`);
+  const onSubmit = async (values: FormValues) => {
+    await fetchInfo(values.url);
   };
 
   return (

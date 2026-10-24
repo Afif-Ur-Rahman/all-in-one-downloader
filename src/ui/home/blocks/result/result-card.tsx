@@ -31,6 +31,7 @@ export const ResultCard = ({ video, onDownload }: ResultCardProps) => {
             <img
               src={video.thumbnail}
               alt={video.title}
+              referrerPolicy="no-referrer"
               className="size-full object-cover"
             />
           ) : (

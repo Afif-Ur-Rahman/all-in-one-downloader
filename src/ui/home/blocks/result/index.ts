@@ -1,2 +1,1 @@
-export * from "./skeleton";
-export * from "./result-card";
+export * from "./result";

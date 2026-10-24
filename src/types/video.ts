@@ -4,6 +4,7 @@ export type VideoFormat = {
   quality: string;
   extension: string;
   size: string;
+  hasAudio: boolean;
 };
 
 export type VideoInfo = {
