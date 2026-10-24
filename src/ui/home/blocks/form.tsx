@@ -5,10 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ClipboardPaste, Download, Link2 } from "lucide-react";
-import { Input } from "./input";
-import { Button } from "./button";
 import { detectPlatform } from "@/lib";
-import { useVideoStore } from "@/store";
+import { useResult } from "@/hooks";
+import { Button, Input } from "@/components";
 
 const schema = z.object({
   url: z
@@ -32,7 +31,7 @@ export const LinkForm = () => {
     defaultValues: { url: "" },
   });
 
-  const { fetchInfo } = useVideoStore();
+  const { fetchInfo } = useResult();
 
   const onPaste = async () => {
     try {

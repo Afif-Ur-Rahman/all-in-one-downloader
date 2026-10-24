@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useVideoStore } from "@/store/video-store";
+import { useVideoStore } from "@/store";
+import { useResult } from "@/hooks";
 import { ResultCard } from "./result-card";
 import { ResultError } from "./result-error";
 import { ResultSkeleton } from "./skeleton";
 
 export const Result = () => {
-  const { status, video, error, url, fetchInfo } = useVideoStore();
+  const { status, video, error } = useVideoStore();
+  const { retry } = useResult();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,10 +25,7 @@ export const Result = () => {
       {status === "loading" && <ResultSkeleton />}
 
       {status === "error" && (
-        <ResultError
-          message={error ?? undefined}
-          onRetry={url ? () => fetchInfo(url) : undefined}
-        />
+        <ResultError message={error ?? undefined} onRetry={retry} />
       )}
 
       {status === "success" && video && <ResultCard video={video} />}

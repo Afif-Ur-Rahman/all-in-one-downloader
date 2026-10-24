@@ -1,5 +1,3 @@
-import { LinkForm } from "@/components";
-
 import type { IconType } from "react-icons";
 import {
   SiFacebook,
@@ -10,6 +8,7 @@ import {
   SiX,
   SiYoutube,
 } from "react-icons/si";
+import { LinkForm } from "./form";
 
 type Platform = {
   name: string;
