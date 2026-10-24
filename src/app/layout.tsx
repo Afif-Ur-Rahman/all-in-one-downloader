@@ -66,7 +66,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body suppressHydrationWarning className="flex min-h-full flex-col">
         <JsonLd />
         <Header />
         {children}
