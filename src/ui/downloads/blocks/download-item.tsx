@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useDownloads } from "@/hooks";
-import { cn, formatBytes, timeAgo } from "@/lib";
+import { cn, formatBytes, formatEta, formatSpeed, timeAgo } from "@/lib";
 import { useDownloadStore } from "@/store/download-store";
 import type { DownloadItem } from "@/types/download";
 import { Button } from "@/components";
@@ -48,11 +48,11 @@ export const DownloadItemRow = ({
   const [imageFailed, setImageFailed] = useState(false);
 
   const active = item.status === "preparing" || item.status === "downloading";
+  const isDownloading = item.status === "downloading";
   const isError = item.status === "error";
   const isDone = item.status === "completed";
   const indeterminate =
-    item.status === "preparing" ||
-    (item.status === "downloading" && !item.total);
+    item.status === "preparing" || (isDownloading && !item.total);
 
   const KindIcon = item.format.kind === "audio" ? Music2 : Video;
   const showThumbnail = item.thumbnail && !imageFailed;
@@ -113,21 +113,31 @@ export const DownloadItemRow = ({
           </div>
         )}
 
-        <p
-          className={cn(
-            "mt-1 flex items-center gap-1.5 text-xs",
-            isError ? "text-red-500" : "text-muted",
-          )}
-        >
-          {isError && <CircleAlert className="size-3.5 shrink-0" aria-hidden />}
-          {isDone && (
-            <CircleCheck
-              className="size-3.5 shrink-0 text-green-500"
-              aria-hidden
-            />
-          )}
-          <span className="min-w-0 truncate">{statusText(item)}</span>
-        </p>
+        {isDownloading ? (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted">
+            <span>{statusText(item)}</span>
+            {item.speed ? <span>{formatSpeed(item.speed)}</span> : null}
+            {item.eta != null ? <span>{formatEta(item.eta)}</span> : null}
+          </p>
+        ) : (
+          <p
+            className={cn(
+              "mt-1 flex items-center gap-1.5 text-xs",
+              isError ? "text-red-500" : "text-muted",
+            )}
+          >
+            {isError && (
+              <CircleAlert className="size-3.5 shrink-0" aria-hidden />
+            )}
+            {isDone && (
+              <CircleCheck
+                className="size-3.5 shrink-0 text-green-500"
+                aria-hidden
+              />
+            )}
+            <span className="min-w-0 truncate">{statusText(item)}</span>
+          </p>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center">

@@ -4,15 +4,19 @@ import { getDownloadUrl } from "./video";
 
 import type { VideoFormat } from "@/types/video";
 
-type DownloadProgress = {
-  loaded: number;
+type Chunk = Uint8Array<ArrayBuffer>;
+
+type DownloadStartInfo = {
   total: number | null;
+  fileName: string | null;
+  type: string;
 };
 
 type DownloadFileOptions = {
   signal: AbortSignal;
-  onStart: (info: { total: number | null }) => void;
-  onProgress: (progress: DownloadProgress) => void;
+  onStart: (info: DownloadStartInfo) => void | Promise<void>;
+  onChunk: (chunk: Chunk) => void | Promise<void>;
+  onProgress: (progress: { loaded: number; total: number | null }) => void;
 };
 
 const parseFileName = (header: string | null): string | null => {
@@ -43,8 +47,8 @@ export const downloadFile = async (
   url: string,
   formatId: string,
   kind: VideoFormat["kind"],
-  { signal, onStart, onProgress }: DownloadFileOptions,
-): Promise<{ blob: Blob; fileName: string | null }> => {
+  { signal, onStart, onChunk, onProgress }: DownloadFileOptions,
+): Promise<void> => {
   const response = await fetch(getDownloadUrl(url, formatId, kind), { signal });
 
   if (!response.ok) {
@@ -53,30 +57,31 @@ export const downloadFile = async (
 
   const length = Number(response.headers.get("Content-Length"));
   const total = Number.isFinite(length) && length > 0 ? length : null;
-  const fileName = parseFileName(response.headers.get("Content-Disposition"));
-  const type =
-    response.headers.get("Content-Type") ?? "application/octet-stream";
 
-  onStart({ total });
+  await onStart({
+    total,
+    fileName: parseFileName(response.headers.get("Content-Disposition")),
+    type: response.headers.get("Content-Type") ?? "application/octet-stream",
+  });
 
   if (!response.body) {
-    return { blob: await response.blob(), fileName };
+    const chunk = new Uint8Array(await response.arrayBuffer());
+    await onChunk(chunk);
+    onProgress({ loaded: chunk.length, total });
+    return;
   }
 
   const reader = response.body.getReader();
-  const chunks: BlobPart[] = [];
   let loaded = 0;
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    chunks.push(value);
+    await onChunk(value);
     loaded += value.length;
     onProgress({ loaded, total });
   }
-
-  return { blob: new Blob(chunks, { type }), fileName };
 };
 
 export const saveBlob = (blob: Blob, fileName: string) => {

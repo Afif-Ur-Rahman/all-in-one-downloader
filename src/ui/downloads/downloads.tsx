@@ -1,29 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Trash2 } from "lucide-react";
+import { Download, FolderOpen, Trash2 } from "lucide-react";
 import { Button, Skeleton } from "@/components";
+import { useDownloadFolder } from "@/hooks";
 import { cn } from "@/lib";
-import { useDownloadStore } from "@/store";
+import { useDownloadStore } from "@/store/download-store";
 import { DownloadItemRow } from "./blocks";
 
 export const Downloads = () => {
-  const { items, hydrated, clearFinished } = useDownloadStore();
+  const items = useDownloadStore((state) => state.items);
+  const hydrated = useDownloadStore((state) => state.hydrated);
+  const clearFinished = useDownloadStore((state) => state.clearFinished);
+  const { supported, folderName, choose } = useDownloadFolder();
 
   const hasFinished = items.some(
     (item) => item.status !== "preparing" && item.status !== "downloading",
   );
 
+  const locationText = !supported
+    ? 'Your browser decides where files are saved. To skip the save dialog, turn off "Ask where to save each file before downloading" in its download settings.'
+    : folderName
+      ? `New downloads are saved straight into your "${folderName}" folder, with no save dialog.`
+      : "Pick a folder once and every download is saved there without asking. We'll create an aio-downloads folder inside it.";
+
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-8">
-      <header className="flex flex-col gap-6 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-3xl px-6 py-16 md:py-24">
+      <header className="flex flex-col gap-6 border-b border-border pb-10 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-balance">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
             Downloads
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-muted">
-            Your recent downloads in this browser. The files themselves are in
-            your device&apos;s downloads folder.
+            Your recent downloads in this browser. The files themselves are on
+            your device.
           </p>
         </div>
 
@@ -37,7 +47,27 @@ export const Downloads = () => {
         </Button>
       </header>
 
-      <div className="mt-5">
+      <section className="mt-8 flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-muted">
+            <FolderOpen className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">Save location</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              {locationText}
+            </p>
+          </div>
+        </div>
+
+        {supported && (
+          <Button variant="secondary" icon={<FolderOpen />} onClick={choose}>
+            {folderName ? "Change folder" : "Choose folder"}
+          </Button>
+        )}
+      </section>
+
+      <div className="mt-8">
         {!hydrated ? (
           <div className="space-y-4" aria-hidden>
             {Array.from({ length: 3 }).map((_, index) => (

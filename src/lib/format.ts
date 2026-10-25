@@ -25,3 +25,20 @@ export const timeAgo = (timestamp: number): string => {
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "day" : "days"} ago`;
 };
+
+export const formatSpeed = (bytesPerSecond: number): string =>
+  `${formatBytes(bytesPerSecond)}/s`;
+
+export const formatEta = (seconds: number): string => {
+  const total = Math.max(1, Math.ceil(seconds));
+
+  if (total < 60) return `${total}s left`;
+
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+
+  if (minutes < 60) return `${minutes}m ${remainder}s left`;
+
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m left`;
+};

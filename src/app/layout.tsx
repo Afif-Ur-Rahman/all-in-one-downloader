@@ -71,7 +71,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => {
         <Header />
         {children}
         <Footer />
-        <Toaster position="bottom-center" />
+        <Toaster position="top-center" />
       </body>
     </html>
   );

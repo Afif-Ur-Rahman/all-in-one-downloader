@@ -18,6 +18,8 @@ export type DownloadItem = {
   progress: number;
   loaded: number;
   total: number | null;
+  speed: number | null;
+  eta: number | null;
   fileName: string | null;
   error: string | null;
   createdAt: number;
