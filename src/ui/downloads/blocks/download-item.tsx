@@ -11,11 +11,13 @@ import {
   Video,
   X,
 } from "lucide-react";
+
 import { useDownloads } from "@/hooks";
-import { cn, formatBytes, formatEta, formatSpeed, timeAgo } from "@/lib";
+import { cn, formatBytes, timeAgo } from "@/lib";
 import { useDownloadStore } from "@/store/download-store";
 import type { DownloadItem } from "@/types/download";
 import { Button } from "@/components";
+import { ProgressBar } from "./progress-bar";
 
 type DownloadItemRowProps = {
   item: DownloadItem;
@@ -25,15 +27,21 @@ type DownloadItemRowProps = {
 const statusText = (item: DownloadItem): string => {
   switch (item.status) {
     case "preparing":
-      return "Preparing on the server...";
+      return "Preparing on the server…";
+
     case "downloading":
-      return item.total
-        ? `${formatBytes(item.loaded)} of ${formatBytes(item.total)} · ${item.progress}%`
-        : `${formatBytes(item.loaded)} downloaded`;
+      return item.activeStream === "merge"
+        ? "Merging media…"
+        : item.activeStream
+          ? `Downloading ${item.activeStream}…`
+          : "Preparing file for transfer…";
+
     case "completed":
-      return `${formatBytes(item.total ?? item.loaded)} · Saved to your device`;
+      return `${formatBytes(item.total ?? item.loaded ?? 0)} · Saved to your device`;
+
     case "cancelled":
       return "Cancelled";
+
     case "error":
       return item.error ?? "Download failed";
   }
@@ -48,14 +56,11 @@ export const DownloadItemRow = ({
   const [imageFailed, setImageFailed] = useState(false);
 
   const active = item.status === "preparing" || item.status === "downloading";
-  const isDownloading = item.status === "downloading";
   const isError = item.status === "error";
   const isDone = item.status === "completed";
-  const indeterminate =
-    item.status === "preparing" || (isDownloading && !item.total);
 
   const KindIcon = item.format.kind === "audio" ? Music2 : Video;
-  const showThumbnail = item.thumbnail && !imageFailed;
+  const showThumbnail = Boolean(item.thumbnail) && !imageFailed;
 
   return (
     <li
@@ -75,7 +80,7 @@ export const DownloadItemRow = ({
             sizes="96px"
             className="object-cover"
             onError={() => setImageFailed(true)}
-            unoptimized // external thumbnails (YouTube, TikTok, etc.)
+            unoptimized
           />
         ) : (
           <div className="flex size-full items-center justify-center text-muted">
@@ -88,37 +93,14 @@ export const DownloadItemRow = ({
         <p className="truncate text-sm font-semibold" title={item.title}>
           {item.title}
         </p>
+
         <p className="mt-0.5 truncate text-xs text-muted">
           {item.format.quality} · {item.format.extension} · {item.platform} ·{" "}
           {timeAgo(item.createdAt)}
         </p>
 
-        {active && (
-          <div
-            role="progressbar"
-            aria-label={`Downloading ${item.title}`}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={indeterminate ? undefined : item.progress}
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-muted"
-          >
-            <div
-              className={cn(
-                "h-full rounded-full bg-accent transition-[width] duration-300",
-                indeterminate &&
-                  "w-1/3 animate-pulse motion-reduce:animate-none",
-              )}
-              style={indeterminate ? undefined : { width: `${item.progress}%` }}
-            />
-          </div>
-        )}
-
-        {isDownloading ? (
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted">
-            <span>{statusText(item)}</span>
-            {item.speed ? <span>{formatSpeed(item.speed)}</span> : null}
-            {item.eta != null ? <span>{formatEta(item.eta)}</span> : null}
-          </p>
+        {active ? (
+          <ProgressBar item={item} />
         ) : (
           <p
             className={cn(
@@ -129,12 +111,14 @@ export const DownloadItemRow = ({
             {isError && (
               <CircleAlert className="size-3.5 shrink-0" aria-hidden />
             )}
+
             {isDone && (
               <CircleCheck
                 className="size-3.5 shrink-0 text-green-500"
                 aria-hidden
               />
             )}
+
             <span className="min-w-0 truncate">{statusText(item)}</span>
           </p>
         )}
