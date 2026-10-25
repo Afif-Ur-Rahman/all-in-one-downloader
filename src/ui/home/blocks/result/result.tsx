@@ -9,7 +9,7 @@ import { ResultSkeleton } from "./skeleton";
 
 export const Result = () => {
   const { status, video, error } = useVideoStore();
-  const { retry } = useResult();
+  const { retry, download } = useResult();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,12 +23,12 @@ export const Result = () => {
   return (
     <div ref={ref} className="mx-auto w-full max-w-2xl scroll-mt-20 px-6 pb-12">
       {status === "loading" && <ResultSkeleton />}
-
       {status === "error" && (
         <ResultError message={error ?? undefined} onRetry={retry} />
       )}
-
-      {status === "success" && video && <ResultCard video={video} />}
+      {status === "success" && video && (
+        <ResultCard video={video} onDownload={download} />
+      )}{" "}
     </div>
   );
 };

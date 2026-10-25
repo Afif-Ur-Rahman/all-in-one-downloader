@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { getVideoInfo } from "@/api";
+import { toast } from "sonner";
+import { getDownloadUrl, getVideoInfo } from "@/api";
 import { useVideoStore } from "@/store";
+import type { VideoFormat } from "@/types/video";
 
 const DEFAULT_ERROR =
   "We couldn't fetch this video. Check that the link is correct and the video is public, then try again.";
@@ -33,5 +35,22 @@ export const useResult = () => {
     if (url) fetchInfo(url);
   }, [url, fetchInfo]);
 
-  return { fetchInfo, retry, reset };
+  const download = useCallback(
+    (format: VideoFormat) => {
+      if (!url) return;
+
+      const link = document.createElement("a");
+      link.href = getDownloadUrl(url, format.id, format.kind);
+      link.target = "_blank";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.info("Preparing your download. Large videos can take a moment.");
+    },
+    [url],
+  );
+
+  return { fetchInfo, retry, reset, download };
 };

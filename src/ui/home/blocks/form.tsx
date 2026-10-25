@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ClipboardPaste, Download, Link2 } from "lucide-react";
+import { ClipboardPaste, Link2, Search } from "lucide-react";
 import { detectPlatform } from "@/lib";
 import { useResult } from "@/hooks";
 import { Button, Input } from "@/components";
@@ -80,10 +80,10 @@ export const LinkForm = () => {
         type="submit"
         size="lg"
         loading={isSubmitting}
-        icon={<Download />}
+        icon={<Search />}
         className="h-16 w-full sm:w-auto"
       >
-        Download
+        Get video
       </Button>
     </form>
   );
