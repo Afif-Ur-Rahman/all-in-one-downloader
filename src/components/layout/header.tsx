@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowDownToLine } from "lucide-react";
 import { siteConfig } from "@/lib/site";
 import { ThemeToggle } from "./theme-toggle";
+import { DownloadsMenu } from "@/ui";
 
 const navLinks = [
   { label: "Platforms", href: "/#platforms" },
@@ -42,6 +43,7 @@ export const Header = () => {
               </Link>
             ))}
           </nav>
+          <DownloadsMenu />
           <ThemeToggle />
         </div>
       </div>
