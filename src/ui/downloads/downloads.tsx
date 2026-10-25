@@ -21,14 +21,14 @@ export const Downloads = () => {
   const locationText = !supported
     ? 'Your browser decides where files are saved. To skip the save dialog, turn off "Ask where to save each file before downloading" in its download settings.'
     : folderName
-      ? `New downloads are saved straight into your "${folderName}" folder, with no save dialog.`
+      ? `New downloads are saved straight into your "${folderName}".`
       : "Pick a folder once and every download is saved there without asking. We'll create an aio-downloads folder inside it.";
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-16 md:py-24">
+    <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <header className="flex flex-col gap-6 border-b border-border pb-10 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-balance md:text-5xl">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-balance">
             Downloads
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-muted">

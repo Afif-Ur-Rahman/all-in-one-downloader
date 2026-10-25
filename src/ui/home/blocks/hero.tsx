@@ -28,7 +28,10 @@ const platforms: Platform[] = [
 
 export const Hero = () => {
   return (
-    <section className="relative isolate flex min-h-[calc(100svh-4rem)] items-center overflow-hidden">
+    <section
+      id="home"
+      className="relative isolate flex min-h-[calc(100svh-4rem)] items-center overflow-hidden scroll-mt-16"
+    >
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-[radial-gradient(var(--border)_1px,transparent_1px)] bg-size-[22px_22px] mask-[linear-gradient(to_bottom,black_30%,transparent)]"

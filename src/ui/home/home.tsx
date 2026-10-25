@@ -2,7 +2,7 @@ import { Faq, Hero, HowItWorks, Result } from "./blocks";
 
 export const Home = () => {
   return (
-    <main>
+    <main className="scroll-mt-16">
       <Hero />
       <Result />
       <HowItWorks />

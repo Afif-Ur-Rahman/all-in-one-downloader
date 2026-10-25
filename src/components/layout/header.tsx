@@ -5,7 +5,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { DownloadsMenu } from "@/ui";
 
 const navLinks = [
-  { label: "Platforms", href: "/#platforms" },
+  { label: "Home", href: "/#home" },
   { label: "How it works", href: "/#how-it-works" },
   { label: "FAQ", href: "/#faq" },
 ];
