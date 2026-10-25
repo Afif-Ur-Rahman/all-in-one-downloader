@@ -3,7 +3,12 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { downloadFile, saveBlob } from "@/api";
+import {
+  downloadFile,
+  pauseDownload,
+  resumeDownloadFile,
+  saveBlob,
+} from "@/api";
 import { parseSizeLabel, resolveDownloadFolder, uniqueFileName } from "@/lib";
 import { useDownloadStore } from "@/store/download-store";
 
@@ -21,6 +26,7 @@ const PROGRESS_INTERVAL_MS = 200;
 const SPEED_SMOOTHING = 0.3;
 
 const controllers = new Map<string, AbortController>();
+const cancelledIds = new Set<string>();
 
 const emptyStreams: Record<StreamName, StreamProgress | null> = {
   video: null,
@@ -106,7 +112,6 @@ const parseEtaString = (raw: string | null): number | null => {
   return null;
 };
 
-// Progress of the server-side preparation stage only (0-100).
 const calculateOverallProgress = (
   streams: Record<StreamName, StreamProgress | null>,
   kind: VideoFormat["kind"],
@@ -115,8 +120,6 @@ const calculateOverallProgress = (
   const audio = streams.audio?.percent ?? 0;
   const merge = streams.merge?.percent ?? 0;
 
-  // Weights follow real byte counts: the video stream is almost all of the
-  // data, the audio stream is small, and merging is a quick remux.
   const value =
     kind === "audio"
       ? audio * 0.8 + merge * 0.2
@@ -125,9 +128,6 @@ const calculateOverallProgress = (
   return Math.min(100, Math.max(0, Math.round(value)));
 };
 
-// Approximate number of bytes the server will download for this format.
-// A video download fetches the chosen video format plus the best audio, and
-// an MP3 is converted from the original audio, so those are the sizes we sum.
 const estimateSize = (video: VideoInfo, format: VideoFormat): number | null => {
   const own = parseSizeLabel(format.size);
 
@@ -145,39 +145,11 @@ const estimateSize = (video: VideoInfo, format: VideoFormat): number | null => {
   return own;
 };
 
-const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
-  const initial = useDownloadStore
-    .getState()
-    .items.find((entry) => entry.id === id);
-
-  if (!initial) return;
-
-  controllers.get(id)?.abort();
-
-  const controller = new AbortController();
-  controllers.set(id, controller);
-
-  const initialStreams: Record<StreamName, StreamProgress | null> = {
-    ...emptyStreams,
-    ...(initial.format.kind === "audio"
-      ? { audio: emptyProgress() }
-      : { video: emptyProgress(), audio: emptyProgress() }),
-    merge: emptyProgress(),
-  };
-
-  useDownloadStore.getState().update(id, {
-    status: "preparing",
-    progress: 0,
-    activeStream: initial.format.kind === "audio" ? "audio" : "video",
-    streams: initialStreams,
-    loaded: 0,
-    total: null,
-    speed: null,
-    eta: null,
-    error: null,
-    fileName: null,
-  });
-
+const createTransferHandlers = (
+  id: string,
+  folder: FileSystemDirectoryHandle | null,
+  controller: AbortController,
+) => {
   const chunks: BlobPart[] = [];
 
   const state = {
@@ -191,189 +163,9 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
   let lastTick = 0;
   let lastLoaded = 0;
   let smoothedSpeed = 0;
-
-  // File size reported by the server's "ready" event. Used as a fallback
-  // when the Content-Length header is missing (e.g. chunked/compressed).
   let readySize: number | null = null;
 
-  try {
-    await downloadFile(
-      initial.sourceUrl,
-      initial.format.id,
-      initial.format.kind,
-      {
-        signal: controller.signal,
-        size: initial.estimatedSize ?? null,
-
-        onPrepareProgress: ({
-          stream,
-          streamPercent,
-          streamLoaded,
-          streamTotal,
-          overallPercent,
-          overallLoaded,
-          overallTotal,
-          speed,
-          eta,
-          phase,
-        }) => {
-          const current = useDownloadStore
-            .getState()
-            .items.find((entry) => entry.id === id);
-
-          if (!current) return;
-
-          if (phase === "ready" && streamTotal) {
-            readySize = streamTotal;
-          }
-
-          const parsedSpeed = parseSpeedString(speed);
-          const parsedEta = parseEtaString(eta);
-
-          const streams: Record<StreamName, StreamProgress | null> = {
-            ...current.streams,
-          };
-
-          if (stream) {
-            const previous = current.streams[stream];
-
-            streams[stream] = {
-              percent: Math.max(
-                previous?.percent ?? 0,
-                Math.min(100, Math.max(0, streamPercent ?? 0)),
-              ),
-              loaded: streamLoaded ?? previous?.loaded ?? null,
-              total: streamTotal ?? previous?.total ?? null,
-              speed: parsedSpeed ?? previous?.speed ?? null,
-              eta: parsedEta ?? previous?.eta ?? null,
-            };
-          }
-
-          const isReady = phase === "ready";
-          const isMerging = phase === "merging";
-
-          const activeStream: StreamName | null = isReady
-            ? null
-            : isMerging
-              ? "merge"
-              : (stream ?? current.activeStream);
-
-          // Prefer the server's size-based percentage. Fall back to the
-          // stream weights when no size estimate was available.
-          const hasOverall = overallPercent != null;
-          const preparationProgress = hasOverall
-            ? overallPercent
-            : calculateOverallProgress(streams, initial.format.kind);
-          const mergingFloor = !hasOverall && isMerging ? 90 : 0;
-
-          useDownloadStore.getState().update(id, {
-            status: isReady ? "downloading" : "preparing",
-            activeStream,
-            streams,
-            progress: isReady
-              ? 100
-              : Math.max(current.progress, preparationProgress, mergingFloor),
-            speed: parsedSpeed ?? current.speed,
-            eta: parsedEta ?? current.eta,
-            loaded: overallLoaded ?? streamLoaded ?? current.loaded,
-            total: overallTotal ?? streamTotal ?? current.total,
-          });
-        },
-
-        onStart: async ({ total, fileName, type }) => {
-          state.type = type;
-          state.name = fileName ?? fallbackFileName(initial);
-
-          if (folder) {
-            state.name = await uniqueFileName(folder, state.name);
-
-            const handle = await folder.getFileHandle(state.name, {
-              create: true,
-            });
-
-            state.entryCreated = true;
-            state.writable = await handle.createWritable();
-          }
-
-          lastTick = Date.now();
-          lastLoaded = 0;
-          smoothedSpeed = 0;
-
-          // Preparation is done, so the bar restarts at 0 for the transfer.
-          useDownloadStore.getState().update(id, {
-            status: "downloading",
-            progress: 0,
-            loaded: 0,
-            total: total ?? readySize,
-            speed: null,
-            eta: null,
-          });
-        },
-
-        onChunk: async (chunk) => {
-          state.received += chunk.length;
-
-          if (state.writable) {
-            await state.writable.write(chunk);
-          } else {
-            chunks.push(chunk);
-          }
-        },
-
-        onProgress: ({ loaded, total }) => {
-          const now = Date.now();
-          const elapsed = now - lastTick;
-
-          if (elapsed < PROGRESS_INTERVAL_MS) return;
-
-          const instantSpeed = Math.max(
-            0,
-            ((loaded - lastLoaded) / elapsed) * 1000,
-          );
-
-          smoothedSpeed =
-            smoothedSpeed === 0
-              ? instantSpeed
-              : SPEED_SMOOTHING * instantSpeed +
-                (1 - SPEED_SMOOTHING) * smoothedSpeed;
-
-          lastTick = now;
-          lastLoaded = loaded;
-
-          const current = useDownloadStore
-            .getState()
-            .items.find((entry) => entry.id === id);
-
-          if (!current) return;
-
-          const streams: Record<StreamName, StreamProgress | null> = {
-            ...current.streams,
-          };
-
-          const knownTotal = total ?? readySize;
-
-          // The backend preparation has finished, so transfer metrics
-          // belong to the overall download rather than a media stream.
-          const eta =
-            knownTotal != null && knownTotal > loaded && smoothedSpeed > 0
-              ? (knownTotal - loaded) / smoothedSpeed
-              : null;
-
-          useDownloadStore.getState().update(id, {
-            loaded,
-            total: knownTotal,
-            progress:
-              knownTotal != null && knownTotal > 0
-                ? Math.min(100, (loaded / knownTotal) * 100)
-                : current.progress,
-            speed: smoothedSpeed > 0 ? smoothedSpeed : current.speed,
-            eta: eta ?? current.eta,
-            streams,
-          });
-        },
-      },
-    );
-
+  const finish = async () => {
     if (state.writable) {
       await state.writable.close();
       state.writable = null;
@@ -387,7 +179,7 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
 
     const completedStreams: Record<StreamName, StreamProgress | null> = {
       video:
-        initial.format.kind === "video"
+        current?.format.kind === "video"
           ? {
               ...(current?.streams.video ?? emptyProgress()),
               percent: 100,
@@ -425,14 +217,20 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
     });
 
     toast.success(folder ? `Saved to ${folder.name}` : "Download complete");
-  } catch (error) {
+  };
+
+  const fail = async (error: unknown) => {
     await state.writable?.abort().catch(() => undefined);
 
     if (folder && state.entryCreated) {
       await folder.removeEntry(state.name).catch(() => undefined);
     }
 
-    if (controller.signal.aborted) {
+    const wasCancelled = cancelledIds.has(id);
+
+    if (wasCancelled) {
+      cancelledIds.delete(id);
+
       useDownloadStore.getState().update(id, {
         status: "cancelled",
         activeStream: null,
@@ -440,15 +238,338 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
         eta: null,
         error: null,
       });
-    } else {
+
+      return;
+    }
+
+    if (controller.signal.aborted) {
       useDownloadStore.getState().update(id, {
-        status: "error",
+        status: "paused",
         activeStream: null,
         speed: null,
         eta: null,
-        error: toMessage(error),
+        error: null,
       });
+
+      return;
     }
+
+    useDownloadStore.getState().update(id, {
+      status: "error",
+      activeStream: null,
+      speed: null,
+      eta: null,
+      error: toMessage(error),
+    });
+  };
+
+  return {
+    state,
+    finish,
+    fail,
+
+    onPrepareProgress: ({
+      jobId,
+      stream,
+      streamPercent,
+      streamLoaded,
+      streamTotal,
+      overallPercent,
+      overallLoaded,
+      overallTotal,
+      speed,
+      eta,
+      phase,
+    }: {
+      jobId: string | null;
+      stream: StreamName | null;
+      streamPercent: number | null;
+      streamLoaded: number | null;
+      streamTotal: number | null;
+      overallPercent: number | null;
+      overallLoaded: number | null;
+      overallTotal: number | null;
+      speed: string | null;
+      eta: string | null;
+      phase: string;
+    }) => {
+      const current = useDownloadStore
+        .getState()
+        .items.find((entry) => entry.id === id);
+
+      if (!current) return;
+
+      if (jobId && current.jobId !== jobId) {
+        useDownloadStore.getState().update(id, { jobId });
+      }
+
+      if (phase === "ready" && streamTotal) {
+        readySize = streamTotal;
+      }
+
+      const parsedSpeed = parseSpeedString(speed);
+      const parsedEta = parseEtaString(eta);
+
+      const streams: Record<StreamName, StreamProgress | null> = {
+        ...current.streams,
+      };
+
+      if (stream) {
+        const previous = current.streams[stream];
+
+        streams[stream] = {
+          percent: Math.max(
+            previous?.percent ?? 0,
+            Math.min(100, Math.max(0, streamPercent ?? 0)),
+          ),
+          loaded: streamLoaded ?? previous?.loaded ?? null,
+          total: streamTotal ?? previous?.total ?? null,
+          speed: parsedSpeed ?? previous?.speed ?? null,
+          eta: parsedEta ?? previous?.eta ?? null,
+        };
+      }
+
+      const isReady = phase === "ready";
+      const isMerging = phase === "merging";
+
+      const activeStream: StreamName | null = isReady
+        ? null
+        : isMerging
+          ? "merge"
+          : (stream ?? current.activeStream);
+
+      const hasOverall = overallPercent != null;
+      const preparationProgress = hasOverall
+        ? overallPercent
+        : calculateOverallProgress(streams, current.format.kind);
+      const mergingFloor = !hasOverall && isMerging ? 90 : 0;
+
+      useDownloadStore.getState().update(id, {
+        status: isReady ? "downloading" : "preparing",
+        activeStream,
+        streams,
+        progress: isReady
+          ? 100
+          : Math.max(current.progress, preparationProgress, mergingFloor),
+        speed: parsedSpeed ?? current.speed,
+        eta: parsedEta ?? current.eta,
+        loaded: overallLoaded ?? streamLoaded ?? current.loaded,
+        total: overallTotal ?? streamTotal ?? current.total,
+      });
+    },
+
+    onStart: async ({
+      total,
+      fileName,
+      type,
+    }: {
+      total: number | null;
+      fileName: string | null;
+      type: string;
+    }) => {
+      const current = useDownloadStore
+        .getState()
+        .items.find((entry) => entry.id === id);
+
+      if (!current) return;
+
+      state.type = type;
+      state.name = fileName ?? fallbackFileName(current);
+
+      if (folder) {
+        state.name = await uniqueFileName(folder, state.name);
+
+        const handle = await folder.getFileHandle(state.name, {
+          create: true,
+        });
+
+        state.entryCreated = true;
+        state.writable = await handle.createWritable();
+      }
+
+      lastTick = Date.now();
+      lastLoaded = 0;
+      smoothedSpeed = 0;
+
+      useDownloadStore.getState().update(id, {
+        status: "downloading",
+        progress: 0,
+        loaded: 0,
+        total: total ?? readySize,
+        speed: null,
+        eta: null,
+      });
+    },
+
+    onChunk: async (chunk: Uint8Array<ArrayBuffer>) => {
+      state.received += chunk.length;
+
+      if (state.writable) {
+        await state.writable.write(chunk);
+      } else {
+        chunks.push(chunk);
+      }
+    },
+
+    onProgress: ({
+      loaded,
+      total,
+    }: {
+      loaded: number;
+      total: number | null;
+    }) => {
+      const now = Date.now();
+      const elapsed = now - lastTick;
+
+      if (elapsed < PROGRESS_INTERVAL_MS) return;
+
+      const instantSpeed = Math.max(
+        0,
+        ((loaded - lastLoaded) / elapsed) * 1000,
+      );
+
+      smoothedSpeed =
+        smoothedSpeed === 0
+          ? instantSpeed
+          : SPEED_SMOOTHING * instantSpeed +
+            (1 - SPEED_SMOOTHING) * smoothedSpeed;
+
+      lastTick = now;
+      lastLoaded = loaded;
+
+      const current = useDownloadStore
+        .getState()
+        .items.find((entry) => entry.id === id);
+
+      if (!current) return;
+
+      const knownTotal = total ?? readySize;
+      const displayLoaded = Math.max(current.loaded ?? 0, loaded);
+
+      const eta =
+        knownTotal != null && knownTotal > displayLoaded && smoothedSpeed > 0
+          ? (knownTotal - displayLoaded) / smoothedSpeed
+          : null;
+
+      useDownloadStore.getState().update(id, {
+        loaded: displayLoaded,
+        total: knownTotal,
+        progress:
+          knownTotal != null && knownTotal > 0
+            ? Math.min(
+                100,
+                Math.max(current.progress, (displayLoaded / knownTotal) * 100),
+              )
+            : current.progress,
+        speed: smoothedSpeed > 0 ? smoothedSpeed : current.speed,
+        eta: eta ?? current.eta,
+      });
+    },
+  };
+};
+
+const startTransfer = async (
+  id: string,
+  folder: FileSystemDirectoryHandle | null,
+) => {
+  const initial = useDownloadStore
+    .getState()
+    .items.find((entry) => entry.id === id);
+
+  if (!initial) return;
+
+  controllers.get(id)?.abort();
+  cancelledIds.delete(id);
+
+  const controller = new AbortController();
+  controllers.set(id, controller);
+
+  const initialStreams: Record<StreamName, StreamProgress | null> = {
+    ...emptyStreams,
+    ...(initial.format.kind === "audio"
+      ? { audio: emptyProgress() }
+      : { video: emptyProgress(), audio: emptyProgress() }),
+    merge: emptyProgress(),
+  };
+
+  useDownloadStore.getState().update(id, {
+    status: "preparing",
+    progress: 0,
+    activeStream: initial.format.kind === "audio" ? "audio" : "video",
+    streams: initialStreams,
+    loaded: 0,
+    total: null,
+    speed: null,
+    eta: null,
+    error: null,
+    fileName: null,
+  });
+
+  const handlers = createTransferHandlers(id, folder, controller);
+
+  try {
+    await downloadFile(
+      initial.sourceUrl,
+      initial.format.id,
+      initial.format.kind,
+      {
+        signal: controller.signal,
+        size: initial.estimatedSize ?? null,
+        ...handlers,
+      },
+    );
+
+    await handlers.finish();
+  } catch (error) {
+    await handlers.fail(error);
+  } finally {
+    if (controllers.get(id) === controller) {
+      controllers.delete(id);
+    }
+  }
+};
+
+const resumeTransfer = async (
+  id: string,
+  folder: FileSystemDirectoryHandle | null,
+) => {
+  const item = useDownloadStore
+    .getState()
+    .items.find((entry) => entry.id === id);
+
+  if (!item?.jobId || controllers.has(id)) return;
+
+  const controller = new AbortController();
+  controllers.set(id, controller);
+
+  useDownloadStore.getState().update(id, {
+    status: "preparing",
+    activeStream: item.format.kind === "audio" ? "audio" : "video",
+    progress: 0,
+    total: null,
+    speed: null,
+    eta: null,
+    error: null,
+  });
+
+  const handlers = createTransferHandlers(id, folder, controller);
+
+  try {
+    await resumeDownloadFile(item.jobId, {
+      signal: controller.signal,
+      ...handlers,
+    });
+
+    await handlers.finish();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      toast.info("Resuming from the server was unavailable. Restarting…");
+
+      await startTransfer(id, folder);
+      return;
+    }
+
+    await handlers.fail(error);
   } finally {
     if (controllers.get(id) === controller) {
       controllers.delete(id);
@@ -487,6 +608,7 @@ export const useDownloads = () => {
 
       add({
         id,
+        jobId: null,
         sourceUrl,
         title: video.title,
         thumbnail: video.thumbnail,
@@ -512,13 +634,62 @@ export const useDownloads = () => {
       });
 
       toast.info("Download started.");
-      void run(id, folder);
+      void startTransfer(id, folder);
     },
     [],
   );
 
   const cancel = useCallback((id: string) => {
+    cancelledIds.add(id);
     controllers.get(id)?.abort();
+  }, []);
+
+  const pause = useCallback(async (id: string) => {
+    const item = useDownloadStore
+      .getState()
+      .items.find((entry) => entry.id === id);
+
+    if (!item) return;
+
+    controllers.get(id)?.abort();
+
+    useDownloadStore.getState().update(id, {
+      status: "paused",
+      activeStream: null,
+      speed: null,
+      eta: null,
+      error: null,
+    });
+
+    if (!item.jobId) return;
+
+    try {
+      await pauseDownload(item.jobId);
+    } catch {
+      // The browser transfer is already stopped. Resume will restart the
+      // server job if its partial files are no longer available.
+    }
+  }, []);
+
+  const resume = useCallback(async (id: string) => {
+    const item = useDownloadStore
+      .getState()
+      .items.find((entry) => entry.id === id);
+
+    if (!item || controllers.has(id)) return;
+
+    try {
+      const folder = await findFolder();
+
+      if (item.jobId) {
+        void resumeTransfer(id, folder);
+        return;
+      }
+
+      void startTransfer(id, folder);
+    } catch (error) {
+      toast.error(toMessage(error));
+    }
   }, []);
 
   const retry = useCallback(async (id: string) => {
@@ -530,11 +701,11 @@ export const useDownloads = () => {
 
     try {
       const folder = await findFolder();
-      void run(id, folder);
+      void startTransfer(id, folder);
     } catch (error) {
       toast.error(toMessage(error));
     }
   }, []);
 
-  return { start, cancel, retry };
+  return { start, cancel, pause, resume, retry };
 };

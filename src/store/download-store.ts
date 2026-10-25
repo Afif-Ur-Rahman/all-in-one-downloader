@@ -44,20 +44,24 @@ export const useDownloadStore = create<DownloadState>()(
     }),
     {
       name: "aio-downloads",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),
       skipHydration: true,
       onRehydrateStorage: () => () => {
-        // A page reload kills any running download, so don't leave them spinning.
         useDownloadStore.setState((state) => ({
           hydrated: true,
           items: state.items.map((item) =>
             isActive(item)
               ? {
                   ...item,
-                  status: "error" as const,
-                  error: "Interrupted. Download again to retry.",
+                  status: item.jobId ? ("paused" as const) : ("error" as const),
+                  activeStream: null,
+                  speed: null,
+                  eta: null,
+                  error: item.jobId
+                    ? null
+                    : "Interrupted. Download again to retry.",
                 }
               : item,
           ),

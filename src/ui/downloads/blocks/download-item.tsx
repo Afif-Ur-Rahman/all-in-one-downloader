@@ -6,6 +6,8 @@ import {
   CircleAlert,
   CircleCheck,
   Music2,
+  Pause,
+  Play,
   RotateCcw,
   Trash2,
   Video,
@@ -36,6 +38,9 @@ const statusText = (item: DownloadItem): string => {
           ? `Downloading ${item.activeStream}…`
           : "Preparing file for transfer…";
 
+    case "paused":
+      return "Paused";
+
     case "completed":
       return `${formatBytes(item.total ?? item.loaded ?? 0)} · Saved to your device`;
 
@@ -51,12 +56,14 @@ export const DownloadItemRow = ({
   item,
   compact = false,
 }: DownloadItemRowProps) => {
-  const { cancel, retry } = useDownloads();
+  const { cancel, pause, resume, retry } = useDownloads();
   const remove = useDownloadStore((state) => state.remove);
   const [imageFailed, setImageFailed] = useState(false);
 
   const active = item.status === "preparing" || item.status === "downloading";
+  const isPaused = item.status === "paused";
   const isError = item.status === "error";
+  const isCancelled = item.status === "cancelled";
   const isDone = item.status === "completed";
 
   const KindIcon = item.format.kind === "audio" ? Music2 : Video;
@@ -99,7 +106,7 @@ export const DownloadItemRow = ({
           {timeAgo(item.createdAt)}
         </p>
 
-        {active ? (
+        {active || isPaused ? (
           <ProgressBar item={item} />
         ) : (
           <p
@@ -126,22 +133,44 @@ export const DownloadItemRow = ({
 
       <div className="flex shrink-0 items-center">
         {active && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="size-9 px-0"
+              aria-label="Pause download"
+              icon={<Pause />}
+              onClick={() => pause(item.id)}
+            />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="size-9 px-0"
+              aria-label="Cancel download"
+              icon={<X />}
+              onClick={() => cancel(item.id)}
+            />
+          </>
+        )}
+
+        {isPaused && (
           <Button
             variant="ghost"
             size="sm"
             className="size-9 px-0"
-            aria-label="Cancel download"
-            icon={<X />}
-            onClick={() => cancel(item.id)}
+            aria-label="Resume download"
+            icon={<Play />}
+            onClick={() => resume(item.id)}
           />
         )}
 
-        {!active && (
+        {(isError || isCancelled) && (
           <Button
             variant="ghost"
             size="sm"
             className="size-9 px-0"
-            aria-label={isDone ? "Download again" : "Retry download"}
+            aria-label="Retry download"
             icon={<RotateCcw />}
             onClick={() => retry(item.id)}
           />

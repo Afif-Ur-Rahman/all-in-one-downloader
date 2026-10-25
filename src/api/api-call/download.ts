@@ -1,5 +1,10 @@
 import { getErrorMessage } from "@/lib";
-import { getDownloadStartUrl, getJobDownloadUrl } from "./video";
+import {
+  getDownloadStartUrl,
+  getJobDownloadUrl,
+  getJobPauseUrl,
+  getJobResumeUrl,
+} from "./video";
 import type { VideoFormat } from "@/types/video";
 
 type Chunk = Uint8Array<ArrayBuffer>;
@@ -11,12 +16,11 @@ type DownloadStartInfo = {
 };
 
 export type PrepareProgress = {
+  jobId: string | null;
   stream: "video" | "audio" | "merge" | null;
   streamPercent: number | null;
   streamLoaded: number | null;
   streamTotal: number | null;
-  // Progress across the whole job, based on the size estimate sent to the
-  // server. Null when no estimate was available.
   overallPercent: number | null;
   overallLoaded: number | null;
   overallTotal: number | null;
@@ -27,7 +31,6 @@ export type PrepareProgress = {
 
 type DownloadFileOptions = {
   signal: AbortSignal;
-  // Approximate final size in bytes, used by the server for stable progress.
   size?: number | null;
   onStart: (info: DownloadStartInfo) => void | Promise<void>;
   onChunk: (chunk: Chunk) => void | Promise<void>;
@@ -71,31 +74,17 @@ const parseSseData = (raw: string): Record<string, unknown> | null => {
 const getNumberOrNull = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
-export const downloadFile = async (
-  url: string,
-  formatId: string,
-  kind: VideoFormat["kind"],
-  {
-    signal,
-    size,
-    onStart,
-    onChunk,
-    onProgress,
-    onPrepareProgress,
-  }: DownloadFileOptions,
-): Promise<void> => {
-  const startUrl = getDownloadStartUrl(url, formatId, kind, size);
-  const startResponse = await fetch(startUrl, { signal });
+type ProgressHandlers = Pick<DownloadFileOptions, "onPrepareProgress">;
 
-  if (!startResponse.ok) {
-    throw new Error(await readError(startResponse));
-  }
-
-  if (!startResponse.body) {
+const readProgressUntilReady = async (
+  response: Response,
+  { onPrepareProgress }: ProgressHandlers,
+): Promise<string> => {
+  if (!response.body) {
     throw new Error("No progress stream from server");
   }
 
-  const reader = startResponse.body.getReader();
+  const reader = response.body.getReader();
   const decoder = new TextDecoder();
 
   let buffer = "";
@@ -137,6 +126,7 @@ export const downloadFile = async (
             : null;
 
         onPrepareProgress?.({
+          jobId,
           stream,
           streamPercent: getNumberOrNull(data.streamPercent),
           streamLoaded: getNumberOrNull(data.streamLoaded),
@@ -175,6 +165,18 @@ export const downloadFile = async (
     throw new Error("The server closed the progress stream unexpectedly");
   }
 
+  return jobId;
+};
+
+const transferFile = async (
+  jobId: string,
+  {
+    signal,
+    onStart,
+    onChunk,
+    onProgress,
+  }: Omit<DownloadFileOptions, "size" | "onPrepareProgress">,
+): Promise<void> => {
   const fileUrl = getJobDownloadUrl(jobId);
   const response = await fetch(fileUrl, { signal });
 
@@ -218,6 +220,81 @@ export const downloadFile = async (
     if (signal.aborted) {
       await fileReader.cancel().catch(() => undefined);
     }
+  }
+};
+
+export const downloadFile = async (
+  url: string,
+  formatId: string,
+  kind: VideoFormat["kind"],
+  {
+    signal,
+    size,
+    onStart,
+    onChunk,
+    onProgress,
+    onPrepareProgress,
+  }: DownloadFileOptions,
+): Promise<void> => {
+  const startUrl = getDownloadStartUrl(url, formatId, kind, size);
+  const startResponse = await fetch(startUrl, { signal });
+
+  if (!startResponse.ok) {
+    throw new Error(await readError(startResponse));
+  }
+
+  const jobId = await readProgressUntilReady(startResponse, {
+    onPrepareProgress,
+  });
+
+  await transferFile(jobId, {
+    signal,
+    onStart,
+    onChunk,
+    onProgress,
+  });
+};
+
+export const resumeDownloadFile = async (
+  jobId: string,
+  {
+    signal,
+    onStart,
+    onChunk,
+    onProgress,
+    onPrepareProgress,
+  }: Omit<DownloadFileOptions, "size">,
+): Promise<void> => {
+  const resumeUrl = getJobResumeUrl(jobId);
+  const resumeResponse = await fetch(resumeUrl, { signal });
+
+  if (!resumeResponse.ok) {
+    throw new Error(await readError(resumeResponse));
+  }
+
+  await readProgressUntilReady(resumeResponse, {
+    onPrepareProgress,
+  });
+
+  await transferFile(jobId, {
+    signal,
+    onStart,
+    onChunk,
+    onProgress,
+  });
+};
+
+export const pauseDownload = async (
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<void> => {
+  const response = await fetch(getJobPauseUrl(jobId), {
+    method: "POST",
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
   }
 };
 

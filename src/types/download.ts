@@ -13,12 +13,14 @@ export type StreamProgress = {
 export type DownloadStatus =
   | "preparing"
   | "downloading"
+  | "paused"
   | "completed"
   | "error"
   | "cancelled";
 
 export type DownloadItem = {
   id: string;
+  jobId: string | null;
   sourceUrl: string;
   title: string;
   thumbnail: string | null;

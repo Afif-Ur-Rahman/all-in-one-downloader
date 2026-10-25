@@ -1,6 +1,8 @@
 import { api, POST } from "../api.client";
 import {
   VIDEO_DOWNLOAD_JOB,
+  VIDEO_DOWNLOAD_PAUSE,
+  VIDEO_DOWNLOAD_RESUME,
   VIDEO_DOWNLOAD_START,
   VIDEO_INFO,
 } from "../endpoints";
@@ -28,5 +30,17 @@ export const getDownloadStartUrl = (
 export const getJobDownloadUrl = (jobId: string): string => {
   return api.getUri({
     url: VIDEO_DOWNLOAD_JOB(jobId),
+  });
+};
+
+export const getJobPauseUrl = (jobId: string): string => {
+  return api.getUri({
+    url: VIDEO_DOWNLOAD_PAUSE(jobId),
+  });
+};
+
+export const getJobResumeUrl = (jobId: string): string => {
+  return api.getUri({
+    url: VIDEO_DOWNLOAD_RESUME(jobId),
   });
 };
