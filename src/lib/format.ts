@@ -11,6 +11,21 @@ export const formatBytes = (bytes: number): string => {
   return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 };
 
+// "~45.3 MB" -> bytes. Returns null for labels like "—".
+export const parseSizeLabel = (label: string): number | null => {
+  const match = label.match(/([\d.]+)\s*(B|KB|MB|GB)/i);
+
+  if (!match) return null;
+
+  const value = Number(match[1]);
+
+  if (!Number.isFinite(value)) return null;
+
+  const power = ["B", "KB", "MB", "GB"].indexOf(match[2].toUpperCase());
+
+  return Math.round(value * 1024 ** power);
+};
+
 export const timeAgo = (timestamp: number): string => {
   const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
 

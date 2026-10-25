@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 
 import { downloadFile, saveBlob } from "@/api";
-import { resolveDownloadFolder, uniqueFileName } from "@/lib";
+import { parseSizeLabel, resolveDownloadFolder, uniqueFileName } from "@/lib";
 import { useDownloadStore } from "@/store/download-store";
 
 import type {
@@ -106,6 +106,7 @@ const parseEtaString = (raw: string | null): number | null => {
   return null;
 };
 
+// Progress of the server-side preparation stage only (0-100).
 const calculateOverallProgress = (
   streams: Record<StreamName, StreamProgress | null>,
   kind: VideoFormat["kind"],
@@ -114,11 +115,34 @@ const calculateOverallProgress = (
   const audio = streams.audio?.percent ?? 0;
   const merge = streams.merge?.percent ?? 0;
 
-  if (kind === "audio") {
-    return Math.round(audio * 0.9 + merge * 0.1);
+  // Weights follow real byte counts: the video stream is almost all of the
+  // data, the audio stream is small, and merging is a quick remux.
+  const value =
+    kind === "audio"
+      ? audio * 0.8 + merge * 0.2
+      : video * 0.85 + audio * 0.1 + merge * 0.05;
+
+  return Math.min(100, Math.max(0, Math.round(value)));
+};
+
+// Approximate number of bytes the server will download for this format.
+// A video download fetches the chosen video format plus the best audio, and
+// an MP3 is converted from the original audio, so those are the sizes we sum.
+const estimateSize = (video: VideoInfo, format: VideoFormat): number | null => {
+  const own = parseSizeLabel(format.size);
+
+  const originalAudio = video.formats.find(
+    (entry) => entry.kind === "audio" && entry.id !== "mp3",
+  );
+  const audioSize = originalAudio ? parseSizeLabel(originalAudio.size) : null;
+
+  if (format.kind === "video") {
+    return own === null ? null : own + (audioSize ?? 0);
   }
 
-  return Math.round(video * 0.4 + audio * 0.4 + merge * 0.2);
+  if (format.id === "mp3") return audioSize ?? own;
+
+  return own;
 };
 
 const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
@@ -168,6 +192,10 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
   let lastLoaded = 0;
   let smoothedSpeed = 0;
 
+  // File size reported by the server's "ready" event. Used as a fallback
+  // when the Content-Length header is missing (e.g. chunked/compressed).
+  let readySize: number | null = null;
+
   try {
     await downloadFile(
       initial.sourceUrl,
@@ -175,12 +203,16 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
       initial.format.kind,
       {
         signal: controller.signal,
+        size: initial.estimatedSize ?? null,
 
         onPrepareProgress: ({
           stream,
           streamPercent,
           streamLoaded,
           streamTotal,
+          overallPercent,
+          overallLoaded,
+          overallTotal,
           speed,
           eta,
           phase,
@@ -190,6 +222,10 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
             .items.find((entry) => entry.id === id);
 
           if (!current) return;
+
+          if (phase === "ready" && streamTotal) {
+            readySize = streamTotal;
+          }
 
           const parsedSpeed = parseSpeedString(speed);
           const parsedEta = parseEtaString(eta);
@@ -222,22 +258,25 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
               ? "merge"
               : (stream ?? current.activeStream);
 
+          // Prefer the server's size-based percentage. Fall back to the
+          // stream weights when no size estimate was available.
+          const hasOverall = overallPercent != null;
+          const preparationProgress = hasOverall
+            ? overallPercent
+            : calculateOverallProgress(streams, initial.format.kind);
+          const mergingFloor = !hasOverall && isMerging ? 90 : 0;
+
           useDownloadStore.getState().update(id, {
             status: isReady ? "downloading" : "preparing",
             activeStream,
             streams,
             progress: isReady
-              ? Math.max(current.progress, 95)
-              : isMerging
-                ? Math.max(
-                    calculateOverallProgress(streams, initial.format.kind),
-                    90,
-                  )
-                : calculateOverallProgress(streams, initial.format.kind),
+              ? 100
+              : Math.max(current.progress, preparationProgress, mergingFloor),
             speed: parsedSpeed ?? current.speed,
             eta: parsedEta ?? current.eta,
-            loaded: streamLoaded ?? current.loaded,
-            total: streamTotal ?? current.total,
+            loaded: overallLoaded ?? streamLoaded ?? current.loaded,
+            total: overallTotal ?? streamTotal ?? current.total,
           });
         },
 
@@ -260,11 +299,14 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
           lastLoaded = 0;
           smoothedSpeed = 0;
 
+          // Preparation is done, so the bar restarts at 0 for the transfer.
           useDownloadStore.getState().update(id, {
             status: "downloading",
-            progress: 95,
+            progress: 0,
             loaded: 0,
-            total,
+            total: total ?? readySize,
+            speed: null,
+            eta: null,
           });
         },
 
@@ -308,22 +350,21 @@ const run = async (id: string, folder: FileSystemDirectoryHandle | null) => {
             ...current.streams,
           };
 
+          const knownTotal = total ?? readySize;
+
           // The backend preparation has finished, so transfer metrics
           // belong to the overall download rather than a media stream.
           const eta =
-            total != null && total > loaded && smoothedSpeed > 0
-              ? (total - loaded) / smoothedSpeed
+            knownTotal != null && knownTotal > loaded && smoothedSpeed > 0
+              ? (knownTotal - loaded) / smoothedSpeed
               : null;
 
           useDownloadStore.getState().update(id, {
             loaded,
-            total,
+            total: knownTotal,
             progress:
-              total != null && total > 0
-                ? Math.min(
-                    100,
-                    Math.max(current.progress, 95 + (loaded / total) * 5),
-                  )
+              knownTotal != null && knownTotal > 0
+                ? Math.min(100, (loaded / knownTotal) * 100)
                 : current.progress,
             speed: smoothedSpeed > 0 ? smoothedSpeed : current.speed,
             eta: eta ?? current.eta,
@@ -456,6 +497,7 @@ export const useDownloads = () => {
           quality: format.quality,
           extension: format.extension,
         },
+        estimatedSize: estimateSize(video, format),
         status: "preparing",
         progress: 0,
         activeStream: format.kind === "audio" ? "audio" : "video",

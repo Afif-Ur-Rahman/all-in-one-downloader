@@ -17,10 +17,11 @@ export const getDownloadStartUrl = (
   url: string,
   formatId: string,
   kind: VideoFormat["kind"],
+  size?: number | null,
 ): string => {
   return api.getUri({
     url: VIDEO_DOWNLOAD_START,
-    params: { url, formatId, kind },
+    params: { url, formatId, kind, size: size ?? undefined },
   });
 };
 

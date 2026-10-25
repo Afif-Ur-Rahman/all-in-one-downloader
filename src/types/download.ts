@@ -24,6 +24,7 @@ export type DownloadItem = {
   thumbnail: string | null;
   platform: string;
   format: Pick<VideoFormat, "id" | "kind" | "quality" | "extension">;
+  estimatedSize?: number | null;
   status: DownloadStatus;
   progress: number;
   activeStream: StreamName | null;

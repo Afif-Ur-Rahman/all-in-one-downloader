@@ -15,6 +15,11 @@ export type PrepareProgress = {
   streamPercent: number | null;
   streamLoaded: number | null;
   streamTotal: number | null;
+  // Progress across the whole job, based on the size estimate sent to the
+  // server. Null when no estimate was available.
+  overallPercent: number | null;
+  overallLoaded: number | null;
+  overallTotal: number | null;
   speed: string | null;
   eta: string | null;
   phase: string;
@@ -22,6 +27,8 @@ export type PrepareProgress = {
 
 type DownloadFileOptions = {
   signal: AbortSignal;
+  // Approximate final size in bytes, used by the server for stable progress.
+  size?: number | null;
   onStart: (info: DownloadStartInfo) => void | Promise<void>;
   onChunk: (chunk: Chunk) => void | Promise<void>;
   onProgress: (progress: { loaded: number; total: number | null }) => void;
@@ -70,13 +77,14 @@ export const downloadFile = async (
   kind: VideoFormat["kind"],
   {
     signal,
+    size,
     onStart,
     onChunk,
     onProgress,
     onPrepareProgress,
   }: DownloadFileOptions,
 ): Promise<void> => {
-  const startUrl = getDownloadStartUrl(url, formatId, kind);
+  const startUrl = getDownloadStartUrl(url, formatId, kind, size);
   const startResponse = await fetch(startUrl, { signal });
 
   if (!startResponse.ok) {
@@ -133,6 +141,9 @@ export const downloadFile = async (
           streamPercent: getNumberOrNull(data.streamPercent),
           streamLoaded: getNumberOrNull(data.streamLoaded),
           streamTotal: getNumberOrNull(data.streamTotal),
+          overallPercent: getNumberOrNull(data.overallPercent),
+          overallLoaded: getNumberOrNull(data.overallLoaded),
+          overallTotal: getNumberOrNull(data.overallTotal),
           speed: typeof data.speed === "string" ? data.speed : null,
           eta: typeof data.eta === "string" ? data.eta : null,
           phase,
