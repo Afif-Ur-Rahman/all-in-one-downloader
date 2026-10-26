@@ -75,6 +75,27 @@
   }
 }
 
+/* ---------- Indeterminate progress ---------- */
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.progress-indeterminate {
+  animation: indeterminate 1.4s ease-in-out infinite;
+}
+
+/* Keep it moving for reduced-motion users, just slower and calmer. */
+@media (prefers-reduced-motion: reduce) {
+  .progress-indeterminate {
+    animation-duration: 2.8s;
+  }
+}
+
 /* ---------- Base styles ---------- */
 @layer base {
   html {

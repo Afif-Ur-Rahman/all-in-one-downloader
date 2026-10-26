@@ -42,9 +42,7 @@ export const ProgressBar = ({ item }: Props) => {
         <div
           className={cn(
             "h-full rounded-full bg-accent transition-[width] duration-300",
-            isPreparing &&
-              progress === 0 &&
-              "w-1/3 animate-pulse motion-reduce:animate-none",
+            isPreparing && progress === 0 && "w-1/3 progress-indeterminate",
           )}
           style={
             isPreparing && progress === 0

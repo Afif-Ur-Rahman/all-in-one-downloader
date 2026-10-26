@@ -5,17 +5,31 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ClipboardPaste, Link2, Search } from "lucide-react";
-import { detectPlatform } from "@/lib";
+import { detectPlatform } from "@/platforms";
 import { useResult } from "@/hooks";
 import { Button, Input } from "@/components";
 
 const schema = z.object({
   url: z
     .url("Please enter a valid link, starting with https://")
-    .refine(
-      (value) => detectPlatform(value) !== null,
-      "This platform isn't supported yet",
-    ),
+    .superRefine((value, ctx) => {
+      const platform = detectPlatform(value);
+
+      if (!platform) {
+        ctx.addIssue({
+          code: "custom",
+          message: "This platform isn't supported yet",
+        });
+        return;
+      }
+
+      if (!platform.available) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${platform.name} downloads are coming soon`,
+        });
+      }
+    }),
 });
 
 type FormValues = z.infer<typeof schema>;

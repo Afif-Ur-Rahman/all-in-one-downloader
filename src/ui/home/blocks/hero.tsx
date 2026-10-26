@@ -1,30 +1,5 @@
-import type { IconType } from "react-icons";
-import {
-  SiFacebook,
-  SiInstagram,
-  SiReddit,
-  SiTiktok,
-  SiVimeo,
-  SiX,
-  SiYoutube,
-} from "react-icons/si";
+import { availablePlatforms } from "@/platforms";
 import { LinkForm } from "./form";
-
-type Platform = {
-  name: string;
-  icon: IconType;
-  color: string;
-};
-
-const platforms: Platform[] = [
-  { name: "YouTube", icon: SiYoutube, color: "text-[#FF0000]" },
-  { name: "TikTok", icon: SiTiktok, color: "text-foreground" },
-  { name: "Instagram", icon: SiInstagram, color: "text-[#E4405F]" },
-  { name: "Facebook", icon: SiFacebook, color: "text-[#0866FF]" },
-  { name: "X (Twitter)", icon: SiX, color: "text-foreground" },
-  { name: "Vimeo", icon: SiVimeo, color: "text-[#1AB7EA]" },
-  { name: "Reddit", icon: SiReddit, color: "text-[#FF4500]" },
-];
 
 export const Hero = () => {
   return (
@@ -58,9 +33,9 @@ export const Hero = () => {
             Works with
           </p>
           <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            {platforms.map(({ name, icon: Icon, color }) => (
+            {availablePlatforms.map(({ id, name, icon: Icon, color }) => (
               <li
-                key={name}
+                key={id}
                 className="flex items-center gap-2 rounded-full border border-border bg-surface py-1.5 pl-3 pr-3.5 text-sm font-medium"
               >
                 <Icon className={`size-4 ${color}`} aria-hidden />

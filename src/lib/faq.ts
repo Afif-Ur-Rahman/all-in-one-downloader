@@ -1,7 +1,14 @@
+import { availablePlatforms } from "@/platforms";
+
 export type FaqItem = {
   question: string;
   answer: string;
 };
+
+const supportedList = new Intl.ListFormat("en", {
+  style: "long",
+  type: "conjunction",
+}).format(availablePlatforms.map((platform) => platform.name));
 
 export const faqs: FaqItem[] = [
   {
@@ -11,8 +18,7 @@ export const faqs: FaqItem[] = [
   },
   {
     question: "Which platforms are supported?",
-    answer:
-      "YouTube, TikTok, Instagram, Facebook, X (Twitter), Vimeo and Reddit are supported, and we are adding more over time.",
+    answer: `Right now you can download from ${supportedList}, and we are adding more platforms over time.`,
   },
   {
     question: "Can I choose the video quality?",
