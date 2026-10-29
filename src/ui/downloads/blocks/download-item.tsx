@@ -71,12 +71,17 @@ export const DownloadItemRow = ({
 
   return (
     <li
-      className={cn("flex items-center gap-3", compact ? "py-3" : "gap-4 py-4")}
+      className={cn(
+        "flex gap-3",
+        compact
+          ? "items-center py-3"
+          : "flex-col py-4 sm:flex-row sm:items-center sm:gap-4",
+      )}
     >
       <div
         className={cn(
           "relative aspect-video shrink-0 overflow-hidden rounded-lg bg-surface-muted",
-          compact ? "w-16" : "w-24",
+          compact ? "w-16" : "w-full sm:w-24",
         )}
       >
         {showThumbnail ? (
@@ -131,7 +136,13 @@ export const DownloadItemRow = ({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center">
+      <div
+        className={cn(
+          "flex shrink-0 items-center",
+          !compact && "justify-end sm:justify-start",
+        )}
+      >
+        {" "}
         {active && (
           <>
             <Button
@@ -153,7 +164,6 @@ export const DownloadItemRow = ({
             />
           </>
         )}
-
         {isPaused && (
           <Button
             variant="ghost"
@@ -164,7 +174,6 @@ export const DownloadItemRow = ({
             onClick={() => resume(item.id)}
           />
         )}
-
         {(isError || isCancelled) && (
           <Button
             variant="ghost"
@@ -175,7 +184,6 @@ export const DownloadItemRow = ({
             onClick={() => retry(item.id)}
           />
         )}
-
         {!active && (
           <Button
             variant="ghost"
