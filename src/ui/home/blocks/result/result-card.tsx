@@ -104,7 +104,8 @@ export const ResultCard = ({ video, onDownload }: ResultCardProps) => {
                 )}
                 onLoad={() => setImageLoading(false)}
                 onError={() => setImageLoading(false)}
-                unoptimized // external thumbnails (YouTube, TikTok, etc.)
+                unoptimized
+                referrerPolicy="no-referrer"
               />
             </>
           ) : (

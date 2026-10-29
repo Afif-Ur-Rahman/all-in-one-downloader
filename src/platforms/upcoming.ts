@@ -1,4 +1,4 @@
-import { SiInstagram, SiReddit, SiTiktok, SiVimeo, SiX } from "react-icons/si";
+import { SiReddit, SiTiktok, SiVimeo, SiX } from "react-icons/si";
 import type { Platform } from "./types";
 
 export const upcomingPlatforms: Platform[] = [
@@ -8,14 +8,6 @@ export const upcomingPlatforms: Platform[] = [
     domains: ["tiktok.com"],
     icon: SiTiktok,
     color: "text-foreground",
-    available: false,
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    domains: ["instagram.com"],
-    icon: SiInstagram,
-    color: "text-[#E4405F]",
     available: false,
   },
   {
