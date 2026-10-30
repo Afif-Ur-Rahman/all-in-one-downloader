@@ -4,3 +4,4 @@ export * from "./faq";
 export * from "./api";
 export * from "./format";
 export * from "./download-folder";
+export * from "./dev-logger";

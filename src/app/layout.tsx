@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
-import { siteConfig } from "@/lib";
+import { DevLogger, siteConfig } from "@/lib";
 import { JsonLd } from "@/seo";
 import { Footer, Header } from "@/components";
+import { MODE } from "@/constants";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -72,6 +73,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => {
         {children}
         <Footer />
         <Toaster position="top-center" />
+        {MODE === "dev" && <DevLogger />}
       </body>
     </html>
   );
