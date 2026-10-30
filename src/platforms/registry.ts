@@ -1,5 +1,6 @@
 import { facebookPlatform } from "./facebook";
 import { instagramPlatform } from "./instagram";
+import { tiktokPlatform } from "./tiktok";
 import type { Platform } from "./types";
 import { upcomingPlatforms } from "./upcoming";
 import { youtubePlatform } from "./youtube";
@@ -8,6 +9,7 @@ export const platforms: Platform[] = [
   youtubePlatform,
   facebookPlatform,
   instagramPlatform,
+  tiktokPlatform,
   ...upcomingPlatforms,
 ];
 
