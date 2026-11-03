@@ -1,5 +1,6 @@
 import { facebookPlatform } from "./facebook";
 import { instagramPlatform } from "./instagram";
+import { redditPlatform } from "./reddit";
 import type { Platform } from "./types";
 import { upcomingPlatforms } from "./upcoming";
 import { vimeoPlatform } from "./vimeo";
@@ -12,6 +13,7 @@ export const platforms: Platform[] = [
   instagramPlatform,
   xPlatform,
   vimeoPlatform,
+  redditPlatform,
   ...upcomingPlatforms,
 ];
 

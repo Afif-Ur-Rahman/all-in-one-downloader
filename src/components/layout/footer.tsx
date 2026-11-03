@@ -74,7 +74,8 @@ export const Footer = () => {
           </p>
           <p className="max-w-lg md:text-right">
             Only download content you own or have permission to save. We are not
-            affiliated with YouTube, TikTok, Instagram, Facebook, X, or Vimeo.
+            affiliated with YouTube, TikTok, Instagram, Facebook, X, Vimeo, or
+            Reddit.
           </p>
         </div>
       </div>
