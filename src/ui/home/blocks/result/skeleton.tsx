@@ -6,7 +6,7 @@ export const ResultSkeleton = () => {
       role="status"
       aria-live="polite"
       aria-busy="true"
-      className="w-full overflow-hidden rounded-3xl border border-border bg-surface text-left"
+      className="w-full animate-fade-in overflow-hidden rounded-3xl border border-border bg-surface text-left shadow-soft"
     >
       <span className="sr-only">Fetching video details...</span>
 
@@ -34,7 +34,7 @@ export const ResultSkeleton = () => {
                 <Skeleton className="h-6 w-12" />
                 <Skeleton className="hidden h-5 w-16 sm:block" />
               </div>
-              <Skeleton className="h-9 w-28 rounded-lg" />
+              <Skeleton className="size-9 rounded-lg sm:h-9 sm:w-28" />
             </div>
           ))}
         </div>

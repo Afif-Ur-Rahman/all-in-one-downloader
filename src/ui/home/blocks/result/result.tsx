@@ -22,7 +22,10 @@ export const Result = () => {
   if (status === "idle") return null;
 
   return (
-    <div ref={ref} className="mx-auto w-full max-w-2xl scroll-mt-20 px-6 pb-12">
+    <div
+      ref={ref}
+      className="mx-auto w-full max-w-2xl scroll-mt-20 px-4 pb-12 sm:px-6"
+    >
       {status === "loading" && <ResultSkeleton />}
 
       {status === "error" && (

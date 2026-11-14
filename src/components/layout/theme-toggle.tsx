@@ -21,8 +21,8 @@ export const ThemeToggle = () => {
       onClick={toggleTheme}
       icon={
         <>
-          <Sun className="hidden dark:block" />
-          <Moon className="dark:hidden" />
+          <Sun className="hidden animate-scale-in dark:block" />
+          <Moon className="animate-scale-in dark:hidden" />
         </>
       }
     />

@@ -11,6 +11,7 @@ export const ProgressBar = ({ item }: Props) => {
   const progress = Math.min(100, Math.max(0, item.progress ?? 0));
   const isCompleted = item.status === "completed";
   const isPreparing = item.status === "preparing";
+  const isPaused = item.status === "paused";
 
   const sizeText =
     item.total != null && item.total > 0
@@ -26,7 +27,12 @@ export const ProgressBar = ({ item }: Props) => {
           {sizeText ?? (isPreparing ? "Preparing download…" : "Starting…")}
         </span>
 
-        <span className="shrink-0 tabular-nums text-muted">
+        <span
+          className={cn(
+            "shrink-0 font-medium tabular-nums",
+            isPaused ? "text-amber-500" : "text-accent",
+          )}
+        >
           {Math.round(progress)}%
         </span>
       </div>
@@ -37,11 +43,12 @@ export const ProgressBar = ({ item }: Props) => {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progress}
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted"
+        className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-muted"
       >
         <div
           className={cn(
-            "h-full rounded-full bg-accent transition-[width] duration-300",
+            "h-full rounded-full transition-[width,background-color] duration-300 ease-out",
+            isPaused ? "bg-amber-500" : "bg-accent",
             isPreparing && progress === 0 && "w-1/3 progress-indeterminate",
           )}
           style={

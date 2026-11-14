@@ -25,13 +25,13 @@ export const Downloads = () => {
       : "Pick a folder once and every download is saved there without asking. We'll create an aio-downloads folder inside it.";
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-8">
-      <header className="flex flex-col gap-6 border-b border-border pb-10 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <header className="flex animate-fade-up flex-col gap-6 border-b border-border pb-8 sm:flex-row sm:items-end sm:justify-between sm:pb-10">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight text-balance">
             Downloads
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-muted">
+          <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">
             Your recent downloads in this browser. The files themselves are on
             your device.
           </p>
@@ -42,14 +42,18 @@ export const Downloads = () => {
           icon={<Trash2 />}
           onClick={clearFinished}
           disabled={!hasFinished}
+          className="w-full sm:w-auto"
         >
           Clear finished
         </Button>
       </header>
 
-      <section className="mt-8 flex flex-col gap-4 rounded-3xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
+      <section
+        className="mt-8 flex animate-fade-up flex-col gap-4 rounded-3xl border border-border bg-surface p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
+        style={{ animationDelay: "80ms" }}
+      >
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-muted">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
             <FolderOpen className="size-5" aria-hidden />
           </span>
           <div className="min-w-0">
@@ -61,7 +65,12 @@ export const Downloads = () => {
         </div>
 
         {supported && (
-          <Button variant="secondary" icon={<FolderOpen />} onClick={choose}>
+          <Button
+            variant="soft"
+            icon={<FolderOpen />}
+            onClick={choose}
+            className="w-full sm:w-auto"
+          >
             {folderName ? "Change folder" : "Choose folder"}
           </Button>
         )}
@@ -75,8 +84,8 @@ export const Downloads = () => {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center gap-5 rounded-3xl border border-border bg-surface p-10 text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-surface-muted text-muted">
+          <div className="flex animate-scale-in flex-col items-center gap-5 rounded-3xl border border-border bg-surface p-8 text-center shadow-soft sm:p-10">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
               <Download className="size-6" aria-hidden />
             </span>
             <div className="max-w-md">
@@ -91,7 +100,7 @@ export const Downloads = () => {
             <Link
               href="/"
               className={cn(
-                "inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-colors",
+                "inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold shadow-soft transition-[background-color,transform] duration-200 active:scale-[0.97]",
                 "bg-accent text-accent-foreground hover:bg-accent-hover",
               )}
             >
@@ -99,7 +108,7 @@ export const Downloads = () => {
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-border rounded-3xl border border-border bg-surface px-5">
+          <ul className="divide-y divide-border rounded-3xl border border-border bg-surface px-4 shadow-soft sm:px-5">
             {items.map((item) => (
               <DownloadItemRow key={item.id} item={item} />
             ))}

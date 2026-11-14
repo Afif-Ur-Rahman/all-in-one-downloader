@@ -4,29 +4,38 @@
 
 /* ---------- Design tokens ---------- */
 :root {
-  --background: #fafaf7;
+  --background: #f5f8fb;
   --surface: #ffffff;
-  --surface-muted: #f2f1ec;
-  --foreground: #111111;
-  --muted: #6b6b66;
-  --border: #e4e2db;
-  --accent: #ff5a36;
-  --accent-hover: #f04a25;
+  --surface-muted: #edf1f6;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-soft: #e0f2fe;
   --accent-foreground: #ffffff;
-  --ring: #ff5a36;
+  --ring: #38bdf8;
+
+  --shadow-soft:
+    0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.08);
 }
 
 .dark {
-  --background: #0f0f0e;
-  --surface: #171716;
-  --surface-muted: #1f1f1d;
-  --foreground: #f4f4f0;
-  --muted: #9a9a93;
-  --border: #2a2a27;
-  --accent: #ff6b47;
-  --accent-hover: #ff7f60;
-  --accent-foreground: #111111;
-  --ring: #ff6b47;
+  --background: #0b1017;
+  --surface: #121923;
+  --surface-muted: #19212c;
+  --foreground: #e8eef5;
+  --muted: #94a3b8;
+  --border: #243040;
+
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-soft: rgb(56 189 248 / 0.12);
+  --accent-foreground: #0b1220;
+  --ring: #38bdf8;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
 }
 
 /* ---------- Map tokens to Tailwind utilities ---------- */
@@ -39,18 +48,24 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-ring: var(--ring);
+
+  --shadow-soft: var(--shadow-soft);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-/* ---------- Popover animations ---------- */
+/* ---------- Animations ---------- */
 @theme {
   --animate-popover-in: popover-in 150ms ease-out;
   --animate-popover-out: popover-out 120ms ease-in;
+  --animate-fade-up: fade-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 300ms ease-out both;
+  --animate-scale-in: scale-in 200ms ease-out both;
 
   @keyframes popover-in {
     from {
@@ -73,6 +88,37 @@
       transform: translateY(-6px) scale(0.98);
     }
   }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 /* ---------- Indeterminate progress ---------- */
@@ -89,11 +135,19 @@
   animation: indeterminate 1.4s ease-in-out infinite;
 }
 
-/* Keep it moving for reduced-motion users, just slower and calmer. */
-@media (prefers-reduced-motion: reduce) {
-  .progress-indeterminate {
-    animation-duration: 2.8s;
+/* ---------- Gentle floating (404 icon) ---------- */
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
   }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.float-soft {
+  animation: float-soft 3.5s ease-in-out infinite;
 }
 
 /* ---------- Base styles ---------- */
@@ -102,17 +156,37 @@
     scroll-behavior: smooth;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    /* Keep the loading bar moving, just slower and calmer. */
+    .progress-indeterminate {
+      animation-duration: 2.8s !important;
+      animation-iteration-count: infinite !important;
+    }
+  }
+
   @supports not selector(::-webkit-scrollbar) {
     html {
       scrollbar-width: thin;
-      scrollbar-color: var(--accent) transparent;
+      scrollbar-color: var(--border) transparent;
     }
   }
 
   /* Chrome, Edge, Safari */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
@@ -120,12 +194,13 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--accent);
+    background-color: var(--border);
     border-radius: 9999px;
+    border: 2px solid var(--background);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--accent-hover);
+    background-color: var(--muted);
   }
 
   body {
@@ -133,11 +208,14 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
   }
 
   ::selection {
-    background: var(--accent);
-    color: var(--accent-foreground);
+    background: var(--accent-soft);
+    color: var(--foreground);
   }
 
   :focus-visible {

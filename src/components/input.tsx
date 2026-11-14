@@ -18,15 +18,15 @@ const sizes: Record<InputSize, { input: string; icon: string; end: string }> = {
     end: "right-1.5",
   },
   lg: {
-    input: "h-16 rounded-2xl text-base",
-    icon: "left-5 [&_svg]:size-5",
+    input: "h-14 rounded-2xl text-base shadow-soft sm:h-16",
+    icon: "left-4 sm:left-5 [&_svg]:size-5",
     end: "right-2",
   },
 };
 
 const iconPadding: Record<InputSize, string> = {
   md: "pl-10",
-  lg: "pl-13",
+  lg: "pl-12 sm:pl-13",
 };
 
 export const Input = ({
@@ -43,11 +43,12 @@ export const Input = ({
 
   return (
     <div className={cn("w-full", wrapperClassName)}>
-      <div className="relative">
+      <div className="group relative">
         {icon && (
           <span
             className={cn(
-              "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted",
+              "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted transition-colors duration-200",
+              "group-focus-within:text-accent",
               sizes[inputSize].icon,
             )}
           >
@@ -61,13 +62,14 @@ export const Input = ({
           aria-describedby={errorId}
           className={cn(
             "w-full border border-border bg-surface px-4 text-foreground placeholder:text-muted/70",
-            "transition-colors hover:border-foreground/25",
+            "transition-[border-color,box-shadow] duration-200",
+            "hover:border-muted/50",
             "focus-visible:border-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/15",
             "disabled:cursor-not-allowed disabled:opacity-60",
             "aria-invalid:border-red-500 aria-invalid:focus-visible:ring-red-500/15",
             sizes[inputSize].input,
             icon && iconPadding[inputSize],
-            endAdornment && (inputSize === "lg" ? "pr-40" : "pr-28"),
+            endAdornment && (inputSize === "lg" ? "pr-28 sm:pr-40" : "pr-28"),
             className,
           )}
           {...props}
@@ -86,7 +88,11 @@ export const Input = ({
       </div>
 
       {error && (
-        <p id={errorId} role="alert" className="mt-2 text-sm text-red-500">
+        <p
+          id={errorId}
+          role="alert"
+          className="mt-2 animate-fade-in text-sm text-red-500"
+        >
           {error}
         </p>
       )}

@@ -39,7 +39,7 @@ export const DownloadsMenu = () => {
         {activeCount > 0 && (
           <span
             aria-hidden
-            className="pointer-events-none absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground"
+            className="pointer-events-none absolute top-1.5 right-1.5 flex size-4 animate-scale-in items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground"
           >
             {activeCount}
           </span>
@@ -53,14 +53,16 @@ export const DownloadsMenu = () => {
           collisionPadding={16}
           aria-label="Recent downloads"
           className={cn(
-            "z-50 w-[min(26rem,calc(100vw-2rem))] origin-(--radix-popover-content-transform-origin) overflow-hidden rounded-2xl border border-border bg-surface text-foreground shadow-xl outline-none",
+            "z-50 w-[min(26rem,calc(100vw-2rem))] origin-(--radix-popover-content-transform-origin) overflow-hidden rounded-2xl border border-border bg-surface text-foreground shadow-soft outline-none",
             "data-[state=open]:animate-popover-in data-[state=closed]:animate-popover-out motion-reduce:animate-none",
           )}
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="text-sm font-semibold">Downloads</p>
             {activeCount > 0 && (
-              <p className="text-xs text-muted">{activeCount} in progress</p>
+              <p className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
+                {activeCount} in progress
+              </p>
             )}
           </div>
 
@@ -82,8 +84,8 @@ export const DownloadsMenu = () => {
               <Link
                 href="/downloads"
                 className={cn(
-                  "inline-flex h-10 w-full items-center justify-center rounded-xl border px-5 text-sm font-semibold transition-colors",
-                  "border-border bg-surface-muted hover:bg-border",
+                  "inline-flex h-10 w-full items-center justify-center rounded-xl px-5 text-sm font-semibold transition-colors duration-200",
+                  "bg-accent-soft text-accent hover:bg-accent/20",
                 )}
               >
                 Show all

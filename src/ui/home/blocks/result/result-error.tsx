@@ -15,7 +15,7 @@ export const ResultError = ({
   return (
     <div
       role="alert"
-      className="flex w-full flex-col items-center gap-5 rounded-3xl border border-border bg-surface p-8 text-center sm:p-10"
+      className="flex w-full animate-scale-in flex-col items-center gap-5 rounded-3xl border border-border bg-surface p-8 text-center shadow-soft sm:p-10"
     >
       <span className="flex size-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
         <CircleAlert className="size-6" aria-hidden />
@@ -29,7 +29,7 @@ export const ResultError = ({
       </div>
 
       {onRetry && (
-        <Button variant="secondary" icon={<RotateCcw />} onClick={onRetry}>
+        <Button variant="soft" icon={<RotateCcw />} onClick={onRetry}>
           Try again
         </Button>
       )}

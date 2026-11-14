@@ -75,11 +75,10 @@ export const LinkForm = () => {
         autoComplete="off"
         aria-label="Video link"
         error={errors.url?.message}
-        className="pr-28"
         endAdornment={
           <Button
             type="button"
-            variant="secondary"
+            variant="soft"
             size="sm"
             icon={<ClipboardPaste />}
             onClick={onPaste}
@@ -95,7 +94,7 @@ export const LinkForm = () => {
         size="lg"
         loading={isSubmitting}
         icon={<Search />}
-        className="h-16 w-full sm:w-auto"
+        className="h-14 w-full sm:h-16 sm:w-auto"
       >
         Get video
       </Button>

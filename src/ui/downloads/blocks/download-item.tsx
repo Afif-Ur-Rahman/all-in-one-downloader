@@ -72,7 +72,7 @@ export const DownloadItemRow = ({
   return (
     <li
       className={cn(
-        "flex gap-3",
+        "flex animate-fade-in gap-3",
         compact
           ? "items-center py-3"
           : "flex-col py-4 sm:flex-row sm:items-center sm:gap-4",
@@ -80,7 +80,7 @@ export const DownloadItemRow = ({
     >
       <div
         className={cn(
-          "relative aspect-video shrink-0 overflow-hidden rounded-lg bg-surface-muted",
+          "relative aspect-video shrink-0 overflow-hidden rounded-xl bg-surface-muted",
           compact ? "w-16" : "w-full sm:w-24",
         )}
       >
@@ -95,7 +95,7 @@ export const DownloadItemRow = ({
             unoptimized
           />
         ) : (
-          <div className="flex size-full items-center justify-center text-muted">
+          <div className="flex size-full items-center justify-center bg-accent-soft text-accent">
             <KindIcon className="size-5" aria-hidden />
           </div>
         )}
@@ -142,7 +142,6 @@ export const DownloadItemRow = ({
           !compact && "justify-end sm:justify-start",
         )}
       >
-        {" "}
         {active && (
           <>
             <Button
@@ -164,9 +163,10 @@ export const DownloadItemRow = ({
             />
           </>
         )}
+
         {isPaused && (
           <Button
-            variant="ghost"
+            variant="soft"
             size="sm"
             className="size-9 px-0"
             aria-label="Resume download"
@@ -174,9 +174,10 @@ export const DownloadItemRow = ({
             onClick={() => resume(item.id)}
           />
         )}
+
         {(isError || isCancelled) && (
           <Button
-            variant="ghost"
+            variant="soft"
             size="sm"
             className="size-9 px-0"
             aria-label="Retry download"
@@ -184,6 +185,7 @@ export const DownloadItemRow = ({
             onClick={() => retry(item.id)}
           />
         )}
+
         {!active && (
           <Button
             variant="ghost"

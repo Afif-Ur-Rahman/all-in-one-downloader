@@ -23,16 +23,16 @@ const footerLinks = [
 
 export const Footer = () => {
   return (
-    <footer className="mt-auto border-t border-border">
-      <div className="mx-auto w-full max-w-6xl px-6 py-14">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
-          <div className="max-w-sm">
+    <footer className="mt-auto border-t border-border bg-surface/50">
+      <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+          <div className="col-span-2 max-w-sm md:col-span-1">
             <Link
               href="/"
-              className="flex items-center gap-2.5"
+              className="group flex items-center gap-2.5"
               aria-label={`${siteConfig.name} home`}
             >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-soft transition-transform duration-200 group-hover:scale-105">
                 <ArrowDownToLine
                   className="size-4.5"
                   strokeWidth={2.5}
@@ -57,7 +57,7 @@ export const Footer = () => {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted transition-colors hover:text-foreground"
+                      className="inline-block text-sm text-muted transition-[color,transform] duration-200 hover:translate-x-0.5 hover:text-accent motion-reduce:hover:translate-x-0"
                     >
                       {link.label}
                     </Link>
@@ -72,7 +72,7 @@ export const Footer = () => {
           <p>
             © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
-          <p className="max-w-lg md:text-right">
+          <p className="max-w-lg rounded-xl bg-surface-muted px-3.5 py-2.5 leading-relaxed md:text-right">
             Only download content you own or have permission to save. We are not
             affiliated with YouTube, TikTok, Instagram, Facebook, X, Vimeo, or
             Reddit.
