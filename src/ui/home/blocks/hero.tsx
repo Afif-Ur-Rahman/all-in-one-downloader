@@ -1,5 +1,6 @@
 import { availablePlatforms } from "@/platforms";
 import { LinkForm } from "./form";
+import { Lamp } from "./lamp";
 
 export const Hero = () => {
   return (
@@ -16,7 +17,9 @@ export const Hero = () => {
         className="absolute inset-x-0 top-0 -z-10 h-130 bg-[radial-gradient(60%_60%_at_50%_0%,var(--accent-soft),transparent)]"
       />
 
-      <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center sm:px-6">
+      <Lamp />
+
+      <div className="relative mx-auto w-full max-w-3xl px-4 pt-36 pb-16 text-center sm:px-6 sm:pt-40">
         <h1 className="animate-fade-up font-display text-3xl leading-[1.1] font-extrabold tracking-tight text-balance md:text-5xl">
           Paste a link.
           <br />

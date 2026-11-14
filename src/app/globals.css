@@ -176,6 +176,36 @@
     }
   }
 
+  /* ---------- Hanging lamp (hero) ---------- */
+  @keyframes lamp-sway {
+    0%,
+    100% {
+      rotate: -1.5deg;
+    }
+    50% {
+      rotate: 1.5deg;
+    }
+  }
+
+  .lamp-sway {
+    transform-origin: top center;
+    animation: lamp-sway 6s ease-in-out infinite;
+  }
+
+  @keyframes bulb-glow {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.12;
+    }
+  }
+
+  .bulb-glow {
+    animation: bulb-glow 4s ease-in-out infinite;
+  }
+
   @supports not selector(::-webkit-scrollbar) {
     html {
       scrollbar-width: thin;
